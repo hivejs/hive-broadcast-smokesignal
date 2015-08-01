@@ -1,14 +1,15 @@
 var setupNode = require('./node')
 
 module.exports = setup
-module.exports.consumes = ['config']
+module.exports.consumes = ['config', 'logger']
 module.exports.provides = ['broadcast']
 
 function setup(plugin, imports, register) {
   var config = imports.config
+    , logger = imports.logger.getLogger('broadcast-smokesignal')
   var syncStreams = {}
     , docStreams = {}
-  setupNode(config.get('broadcast-smokesignal'), function(er, broadcast) {
+  setupNode(config.get('broadcast-smokesignal'), logger, function(er, broadcast) {
     var Broadcast = {
       broadcast: {
         stream: broadcast
