@@ -45,6 +45,10 @@ function setup(plugin, imports, register) {
           readBroadcast.pipe(readable)
 
           var stream = duplexify(writable, readable)
+          stream.on('end', function() {
+            localClients[docId].splice(localClients[docId].indexOf(readBroadcast))
+          })
+
           return stream
         }
       }
