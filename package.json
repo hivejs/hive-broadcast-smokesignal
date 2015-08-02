@@ -7,6 +7,8 @@
     "smokesignal":"0.x"
   , "find-free-port": "1.x"
   , "mux-dmx": "0.0.x"
+  , "through2": "2.x"
+  , "duplexify": "3.x"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
