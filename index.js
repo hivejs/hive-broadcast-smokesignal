@@ -1,6 +1,7 @@
 var setupNode = require('./node')
   , PassThrough = require('stream').PassThrough
   , duplexify = require('duplexify')
+  , through = require('through2')
 
 module.exports = setup
 module.exports.consumes = ['config', 'logger']
@@ -13,18 +14,21 @@ function setup(plugin, imports, register) {
     , docStreams = {}
     , localClients = {}
   setupNode(config.get('broadcast-smokesignal'), logger, function(er, broadcast) {
+    broadcast.on('error', function(e) {
+      logger.warn(e.stack || e)
+    })
     var Broadcast = {
       broadcast: {
         stream: broadcast
       , sync: function(docId) {
           if(!syncStreams[docId]) {
-            syncStreams[docId] = broadcast.createDuplexStream(new Buffer('sync:'+docId))
+            syncStreams[docId] = broadcast.createDuplexStream(new Buffer('sync:'+docId, 'utf8'))
           }
           return syncStreams[docId]
         }
       , document: function(docId) {
           if(!docStreams[docId]) {
-            docStreams[docId] = broadcast.createDuplexStream(new Buffer('document:'+docId))
+            docStreams[docId] = broadcast.createDuplexStream(new Buffer('document:'+docId, 'utf8'))
           }
           var readBroadcast = new PassThrough
           if(!Array.isArray(localClients[docId])) localClients[docId] = []
