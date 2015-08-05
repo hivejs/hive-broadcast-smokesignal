@@ -17,7 +17,7 @@
  */
 var setupNode = require('./node')
   , PassThrough = require('stream').PassThrough
-  , duplexify = require('duplexify')
+  , MuxDmx = require('mux-dmx')
   , through = require('through2')
 
 module.exports = setup
@@ -30,6 +30,7 @@ function setup(plugin, imports, register) {
   var syncStreams = {}
     , docStreams = {}
     , localClients = {}
+    , channels = {}
   setupNode(config.get('broadcast-smokesignal'), logger, function(er, broadcast) {
     broadcast.on('error', function(e) {
       logger.warn(e.stack || e)
@@ -43,34 +44,40 @@ function setup(plugin, imports, register) {
           }
           return syncStreams[docId]
         }
-      , document: function(docId) {
+      , registerChannel: function(id, fn) {
+          if(channels[id.toString('base64')]) return
+          channels[id.toString('base64')] = fn
+        }
+      , document: function(docId, user) {
           if(!docStreams[docId]) {
             docStreams[docId] = broadcast.createDuplexStream(new Buffer('document:'+docId, 'utf8'))
           }
-          var readBroadcast = new PassThrough
+          var b = MuxDmx()
           if(!Array.isArray(localClients[docId])) localClients[docId] = []
-          localClients[docId].push(readBroadcast)
+          localClients[docId].push(b)
 
-          var writable = new PassThrough
-          writable.pipe(through(function(buf, enc, cb) {
-            localClients[docId].forEach(function(s) {
-              if(s === readBroadcast) return
-              s.write(buf)
+          Object.keys(channels).forEach(function(channel) {
+            var id = new Buffer(channel, 'base64')
+              , readable = b.createDuplexStream(id)
+              , writable = new PassThrough
+            writable.pipe(through(function(buf, enc, cb) {
+              if(Array.isArray(localClients[docId])) {
+                localClients[docId].forEach(function(s) {
+                  if(s === b) return
+                  s.createDuplexStream(id).write(buf)
+                })
+              }
               cb()
-            })
-          }))
-          writable.pipe(docStreams[docId])
-          
-          var readable = new PassThrough
-          docStreams[docId].pipe(readable)
-          readBroadcast.pipe(readable)
+            }))
+            writable.pipe(docStreams[docId])
+            channels[channel](user, docId, readable, writable)
+          })
 
-          var stream = duplexify(writable, readable)
-          stream.on('end', function() {
+          b.on('end', function() {
             localClients[docId].splice(localClients[docId].indexOf(readBroadcast))
           })
 
-          return stream
+          return b
         }
       }
     }
