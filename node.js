@@ -1,6 +1,5 @@
 var Smoke = require('smokesignal')
   , findPort = require('find-free-port')
-  , MuxDmx = require('mux-dmx')
 
 
 var streams = {}
@@ -14,12 +13,10 @@ module.exports = function (opts, logger, cb) {
     , seeds: opts.seeds
     , logger: logger
     })
-    
-    var mux = MuxDmx()
-    node.broadcast.pipe(mux).pipe(node.broadcast)
-    
+
+
     node.start()
-    
-    cb(null, mux)
+
+    cb(null, node.broadcast)
   })
 }
