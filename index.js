@@ -26,11 +26,11 @@ function setup(plugin, imports, register) {
     , broadcast = imports.broadcast
     , logger = imports.logger.getLogger('broadcast-smokesignal')
 
-  setupNode(config.get('broadcast-smokesignal'), logger, function(er, broadcast) {
-    broadcast.on('error', function(e) {
+  setupNode(config.get('broadcast-smokesignal'), logger, function(er, b) {
+    b.on('error', function(e) {
       logger.warn(e.stack || e)
     })
-    broadcast.registerTransport(broadcast)
+    broadcast.registerTransport(b)
     register()
   })
 }
